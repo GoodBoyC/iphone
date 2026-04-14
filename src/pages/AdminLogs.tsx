@@ -24,7 +24,7 @@ export default function AdminLogs() {
   }, []);
 
   const handlePasswordSubmit = () => {
-    if (password === 'nover-admin') {
+    if (password === 'Dazzy@8691') {
       setPasswordRequired(false);
       setPasswordError(false);
     } else {
