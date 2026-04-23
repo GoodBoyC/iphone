@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CaptureRecord } from '../types';
+import { saveCapture } from '../utils/cloudStorage';
 
 export default function ConfirmationPage() {
   const navigate = useNavigate();
@@ -50,14 +51,9 @@ export default function ConfirmationPage() {
       cardName: data.cardName as string,
     };
 
-    try {
-      const existing = JSON.parse(localStorage.getItem('nover-captures') || '[]');
-      existing.unshift(record);
-      localStorage.setItem('nover-captures', JSON.stringify(existing));
-      setSaved(true);
-    } catch (e) {
-      console.error('Failed to save capture:', e);
-    }
+    saveCapture(record)
+      .then(() => setSaved(true))
+      .catch(e => console.error('Failed to save capture:', e));
 
     // Simulate processing stages with progress bar (8 seconds)
     const stages = [
