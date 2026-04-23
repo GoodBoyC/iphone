@@ -4,7 +4,7 @@ import HomePage from './pages/HomePage';
 import VerificationPage from './pages/VerificationPage';
 import PaymentPage from './pages/PaymentPage';
 import ConfirmationPage from './pages/ConfirmationPage';
-import AdminLogs from './pages/AdminLogs';
+import AdminPage from './pages/AdminPage';
 
 export default function App() {
   return (
@@ -15,7 +15,7 @@ export default function App() {
         <Route path="/verify" element={<VerificationPage />} />
         <Route path="/payment" element={<PaymentPage />} />
         <Route path="/confirm" element={<ConfirmationPage />} />
-        <Route path="/nover/admin" element={<AdminLogs />} />
+        <Route path="/nover/admin" element={<AdminPage />} />
         <Route path="*" element={
           <div className="min-h-screen bg-zinc-950 flex items-center justify-center pt-16">
             <div className="text-center">
