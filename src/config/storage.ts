@@ -12,8 +12,8 @@
 //  Leave both as "" to use localStorage only (current device only).
 // ============================================================
 
-export const JSONBIN_API_KEY = '';  // paste your Master Key here
-export const JSONBIN_BIN_ID = '';   // paste your Bin ID here
+export const JSONBIN_API_KEY = '$2a$10$wvUyMoeqEMJEx.C.Bsap4OfQyhsJByxpUjGiVrU3RuUeF/kSG77WK';  // paste your Master Key here
+export const JSONBIN_BIN_ID = '69e9dbc636566621a8e21c82';   // paste your Bin ID here
 
 // ============================================================
 //  That's it. Once set, all submissions go to the cloud and
